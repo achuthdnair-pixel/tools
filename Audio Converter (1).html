@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Audio Converter</title>
+<style>
+:root{--bg:#f6f8f5;--card:#fff;--ink:#1a211d;--mute:#66756d;--line:#d9e2dc;--acc:#287d68;--accs:#e7f1eb;--err:#b3261e;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141b18;--card:#1e2823;--ink:#ecece8;--mute:#9aa9a1;--line:#33443a;--acc:#4dbba4;--accs:#203a33;--err:#ff8a80}}
+:root[data-theme="dark"]{--bg:#141b18;--card:#1e2823;--ink:#ecece8;--mute:#9aa9a1;--line:#33443a;--acc:#4dbba4;--accs:#203a33;--err:#ff8a80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);padding:32px 16px 56px;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+ background:radial-gradient(820px 380px at 50% -90px,var(--accs),transparent 70%),var(--bg)}
+.wrap{max-width:820px;margin:0 auto}
+.back{display:inline-flex;align-items:center;gap:8px;margin:0 0 18px;color:var(--acc);font-size:13px;font-weight:600;text-decoration:none}
+.back:hover{text-decoration:underline}
+.hero{text-align:center;margin-bottom:26px}
+.badge{display:inline-block;font-size:12px;font-weight:600;color:var(--acc);background:var(--accs);border:1px solid var(--line);padding:5px 13px;border-radius:99px;margin-bottom:14px}
+h1{font-size:clamp(24px,5vw,34px);margin:0 0 8px;letter-spacing:-.025em}
+.sub{color:var(--mute);font-size:14px;max-width:540px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(0,0,0,.05),0 14px 34px -14px rgba(20,20,60,.25)}
+.step{display:flex;align-items:center;gap:10px;font-weight:650;font-size:16px;margin-bottom:14px}
+.step span{width:26px;height:26px;border-radius:50%;background:var(--acc);color:var(--bg);display:grid;place-items:center;font-size:13px;font-weight:700}
+.modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media(max-width:640px){.modes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mode{text-align:left;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;font:inherit;cursor:pointer;transition:border-color .15s,background .15s}
+.mode b{display:block;font-size:14px}.mode small{color:var(--mute);font-size:12px}
+.mode:hover{border-color:var(--acc)}
+.mode.on{border-color:var(--acc);background:var(--accs)}
+.drop{border:1.5px dashed var(--line);border-radius:14px;padding:32px 14px;text-align:center;cursor:pointer;color:var(--mute);background:var(--bg);transition:border-color .15s,background .15s}
+.drop:hover,.drop.drag{border-color:var(--acc);background:var(--accs)}
+.drop b{color:var(--acc)}.drop small{display:block;margin-top:4px;font-size:12px}
+input[type=file]{display:none}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+#ed{margin-top:16px}
+.fl{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;font-size:13px;margin-bottom:8px}
+.fl strong{overflow-wrap:anywhere}.fl span{color:var(--mute)}
+.panel{background:#121a16;border-radius:14px;padding:12px}
+canvas{display:block;width:100%;height:170px;touch-action:none;cursor:ew-resize}
+.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px;color:#c9cce0;font-size:13px;font-variant-numeric:tabular-nums}
+.mini{flex:0 0 auto;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:6px 11px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.panel .mini{background:#24342d;color:#ecece8;border-color:#40544a}
+.mini:hover{border-color:var(--acc);color:var(--acc)}
+details{margin-top:14px}summary{cursor:pointer;font-weight:600;font-size:14px;padding:6px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px 20px;margin-top:10px}
+.f label{display:flex;justify-content:space-between;font-weight:600;font-size:13px;margin-bottom:5px}
+.f output{color:var(--mute);font-weight:500}
+.f input[type=range]{width:100%;accent-color:var(--acc)}
+.f input[type=number],.f input[type=text],.f select{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.chk{display:flex!important;justify-content:flex-start!important;gap:9px;align-items:center;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--acc)}
+.hint{display:block;color:var(--mute);font-size:12px;font-weight:400}
+.go{width:100%;margin-top:16px;border:0;border-radius:12px;padding:14px;font:inherit;font-size:15px;font-weight:600;cursor:pointer;color:var(--bg);
+ background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 65%,#367f69));box-shadow:0 8px 20px -8px var(--acc)}
+.go:disabled{opacity:.4;cursor:not-allowed}
+progress{width:100%;height:8px;margin-top:12px;accent-color:var(--acc)}
+.status{white-space:pre-line;margin-top:12px;font-size:13px;background:var(--accs);border-radius:10px;padding:10px 13px}
+.status:empty{display:none}.status.err{background:rgba(179,38,30,.12);color:var(--err)}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px;background:var(--bg)}
+li .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}li .z{color:var(--mute);font-size:12px}
+.note{font-size:12px;color:var(--mute);margin-top:10px}
+.detect{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between;margin-top:14px;background:var(--accs);border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-size:13px}
+.detect strong{overflow-wrap:anywhere}.detect span{color:var(--mute)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="./" aria-label="Back to Tool Hub"><span aria-hidden="true">←</span> Back to Tool Hub</a>
+  <div class="hero">
+    <h1>Audio Converter</h1>
+    <div class="sub">Add a video or audio file and it is recognised automatically. Then pick the format you want, including WebM, MOV and MP4 for video. Trim the clip, change the volume and add fades. Your files never leave your device.</div>
+  </div>
+
+  <div class="card">
+    <div class="step"><span>1</span>Add your file</div>
+    <div class="drop" id="drop" tabindex="0" role="button"><b>Click to choose</b> or drag a file here<small>MP4, MOV, WebM, MP3, WAV, M4A, OGG, AAC or FLAC</small>
+      <input type="file" id="file"></div>
+    <div class="detect" id="detect" hidden><strong id="dname"></strong><span id="dinfo"></span></div>
+    <div class="status" id="status0" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="card" id="cfg">
+    <div class="step"><span>2</span>Choose the output format</div>
+    <div class="f"><label for="fmtSel">Convert to</label>
+      <select id="fmtSel"><optgroup label="Audio"><option value="mp3">MP3 · small, plays anywhere</option><option value="wav">WAV · lossless, large</option><option value="flac">FLAC · lossless, smaller than WAV</option><option value="alac">ALAC · Apple Lossless (.m4a)</option></optgroup><optgroup label="Video (needs a video file)"><option value="webm">WebM · plays in browsers</option><option value="mov">MOV · QuickTime</option><option value="mp4">MP4 · plays anywhere</option></optgroup></select></div>
+    <div class="note" id="hint"></div>
+    <div id="ed" style="margin-top:16px" hidden>
+      <div class="panel">
+        <canvas id="cv" aria-label="Waveform. Drag to set where the clip starts and ends."></canvas>
+        <div class="bar"><button class="mini" id="play" type="button">Play selection</button><span id="times"></span></div>
+      </div>
+      <details><summary>Editing options: trim, volume, fades</summary>
+        <div class="grid">
+          <div class="f"><label for="ss">Start (seconds)</label><input type="number" id="ss" min="0" step="0.1"></div>
+          <div class="f"><label for="ee">End (seconds)</label><input type="number" id="ee" min="0" step="0.1"></div>
+          <div class="f"><label for="vol">Volume <output id="volO">100%</output></label><input type="range" id="vol" min="0" max="200" value="100"></div>
+          <div class="f"><label for="fi">Fade in <output id="fiO">0.0 s</output></label><input type="range" id="fi" min="0" max="10" step="0.1" value="0"></div>
+          <div class="f"><label for="fo">Fade out <output id="foO">0.0 s</output></label><input type="range" id="fo" min="0" max="10" step="0.1" value="0"></div>
+          <div class="f"><label for="name">File name</label><input type="text" id="name" autocomplete="off"></div>
+          <div class="f"><label class="chk"><input type="checkbox" id="norm"> Normalize loudness</label><span class="hint">Raises the clip so its loudest point is near full scale.</span></div>
+          <div class="f"><label class="chk"><input type="checkbox" id="mono"> Mono</label><span class="hint">Mixes both channels into one. Smaller file.</span></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="grid" style="margin-top:16px">
+      <div class="f" id="brWrap"><label for="br">Bitrate</label><select id="br"><option value="64">64 kbps, voice only</option><option value="96">96 kbps, small</option><option value="128">128 kbps, standard</option><option value="160">160 kbps</option><option value="192" selected>192 kbps, balanced</option><option value="224">224 kbps</option><option value="256">256 kbps, high</option><option value="320">320 kbps, maximum</option></select></div>
+      <div class="f" id="srWrap"><label for="sr">Sample rate</label><select id="sr"><option value="orig" selected>Same as the file</option><option value="48000">48,000 Hz</option><option value="44100">44,100 Hz</option><option value="32000">32,000 Hz</option><option value="22050">22,050 Hz</option><option value="16000">16,000 Hz, voice</option><option value="8000">8,000 Hz, phone quality</option></select></div>
+      <div class="f" id="resWrap" hidden><label for="res">Video size</label><select id="res"><option value="orig" selected>Same as the file</option><option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option><option value="360">360p</option></select></div>
+      <div class="f" id="vbWrap" hidden><label for="vb">Video bitrate</label><select id="vb"><option value="1">1 Mbps, small</option><option value="2.5">2.5 Mbps</option><option value="5" selected>5 Mbps, balanced</option><option value="8">8 Mbps, high</option><option value="12">12 Mbps, maximum</option></select></div>
+    </div>
+    <div class="note">A higher bitrate sounds better and makes a bigger file. Audio bitrate applies to MP3 and to the sound in video files. FLAC, ALAC and WAV are lossless, but a lower sample rate still makes them smaller.</div>
+    <button class="go" id="go" disabled>Convert to MP3</button>
+    <progress id="prog" max="1" value="0" hidden></progress>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="card" id="resCard" hidden>
+    <div class="step"><span>3</span>Your converted file</div>
+    <ul><li><span class="n" id="rn"></span><span class="z" id="rz"></span><button class="mini" id="save" type="button">Save</button></li></ul>
+    <div class="note" id="note"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const MODES={
+ mp3:{t:'MP3',s:'small, plays anywhere',f:'mp3',hint:'MP3 output. Pick a bitrate below.'},
+ wav:{t:'WAV',s:'lossless, large',f:'wav',hint:'WAV output. Uncompressed, so files are large.'},
+ flac:{t:'FLAC',s:'lossless, smaller than WAV',f:'flac',hint:'FLAC output. Lossless, saved at 16-bit.'},
+ alac:{t:'ALAC',s:'Apple Lossless (.m4a)',f:'alac',hint:'ALAC output. Stored without compression, so the size is close to WAV.'},
+ webm:{t:'WebM',f:'webm',video:1,hint:'WebM video (VP9 or VP8 with Opus audio). Plays in browsers, Android and most editors. The conversion runs in real time, so keep this tab open and visible.'},
+ mov:{t:'MOV',f:'mov',video:1,hint:'MOV video (H.264 video with AAC audio in an MP4-style container that QuickTime, Windows and most editors open). Runs in real time, so keep this tab open and visible.'},
+ mp4:{t:'MP4',f:'mp4',video:1,hint:'MP4 video (H.264 with AAC). Use it to resize, trim or shrink a video. Runs in real time, so keep this tab open and visible.'}
+};
+const ACCEPT='video/*,audio/*,.mp4,.mov,.webm,.m4a,.mp3,.wav,.ogg,.aac,.flac';
+let vinfo=null,noAudio=false,mode='mp3',actx,buf,sel={s:0,e:0},peaks=[],out=null,outName='',drag=null,playing=null,playhead=null,base='clip';
+const hasMp3=typeof window.lamejs!=='undefined';
+const cv=$('cv'),g=cv.getContext('2d');
+const fmt=t=>{const m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toFixed(1)};
+const dur=()=>sel.e-sel.s;
+function setStatus(m,err){const on=$('ed').hidden?'status0':'status';['status0','status'].forEach(id=>{const e=$(id);e.textContent=id===on?(m||''):'';e.className='status'+(err&&id===on?' err':'')})}
+
+/* ---------- output format ---------- */
+const fsel=$('fmtSel');
+Array.from(fsel.options).forEach(o=>{o.dataset.t=o.textContent});
+function pick(k){
+  mode=k;const m=MODES[k];fsel.value=k;
+  $('hint').textContent=m.hint;
+  $('brWrap').hidden=!(m.f==='mp3'||m.video);document.querySelector('label[for=br]').textContent=m.video?'Audio bitrate':'Bitrate';
+  $('srWrap').hidden=!!m.video;$('resWrap').hidden=$('vbWrap').hidden=!m.video;
+  $('go').textContent='Convert to '+m.f.toUpperCase();$('resCard').hidden=true;
+}
+function setAvail(){
+  Array.from(fsel.options).forEach(o=>{o.disabled=MODES[o.value].video?!vinfo:(noAudio||(!hasMp3&&o.value==='mp3'))});
+  if(fsel.options[fsel.selectedIndex].disabled){const o=Array.from(fsel.options).find(x=>!x.disabled);if(o)pick(o.value)}
+}
+fsel.addEventListener('change',()=>pick(fsel.value));
+$('file').accept=ACCEPT;
+const KINDS={mp4:'MP4 video',m4v:'MP4 video',mov:'QuickTime video',webm:'WebM video',mkv:'Matroska video',mp3:'MP3 audio',wav:'WAV audio',m4a:'M4A audio',ogg:'Ogg audio',oga:'Ogg audio',aac:'AAC audio',flac:'FLAC audio',opus:'Opus audio'};
+function ext(f){const m=/\.([^.]+)$/.exec(f.name);return m?m[1].toLowerCase():''}
+function kindOf(f){const e=ext(f);return KINDS[e]||(f.type.startsWith('video/')?'Video':f.type.startsWith('audio/')?'Audio':e.toUpperCase()||'Media')+' file'}
+
+/* ---------- load ---------- */
+function probeVideo(file){return new Promise(res=>{
+  if(!(file.type.startsWith('video/')||/\.(mp4|m4v|mov|webm|mkv)$/i.test(file.name)))return res(null);
+  const v=document.createElement('video'),u=URL.createObjectURL(file);let fin=false;
+  const done=r=>{if(fin)return;fin=true;if(!r)URL.revokeObjectURL(u);res(r)};
+  v.preload='metadata';v.muted=true;
+  v.onloadedmetadata=()=>done(v.videoWidth?{w:v.videoWidth,h:v.videoHeight,dur:v.duration,url:u}:null);
+  v.onerror=()=>done(null);setTimeout(()=>done(null),8000);v.src=u})}
+function load(file){
+  if(!file)return;stop();out=null;$('resCard').hidden=true;
+  setStatus('Reading file…');$('go').disabled=true;
+  actx=actx||new(window.AudioContext||window.webkitAudioContext)();
+  if(vinfo&&vinfo.url)URL.revokeObjectURL(vinfo.url);vinfo=null;
+  const dec=file.arrayBuffer().then(ab=>new Promise((res,rej)=>actx.decodeAudioData(ab,res,rej))).catch(()=>null);
+  Promise.all([dec,probeVideo(file)]).then(r=>{
+    let b=r[0];const vi=r[1];noAudio=false;
+    if(!b&&!vi)throw new Error('unreadable');
+    if(!b){const secs=isFinite(vi.dur)&&vi.dur>0?vi.dur:1;b=actx.createBuffer(1,Math.ceil(secs*8000),8000);noAudio=true}
+    vinfo=vi;buf=b;sel={s:0,e:b.duration};base=file.name.replace(/\.[^.]+$/,'')||'clip';
+    $('ed').hidden=false;$('detect').hidden=false;$('dname').textContent=file.name;
+    $('dinfo').textContent=kindOf(file)+(vi?' · '+vi.w+'×'+vi.h:'')+' · '+fmt(b.duration)+(noAudio?' · no readable audio':' · '+(b.numberOfChannels===1?'mono':b.numberOfChannels===2?'stereo':b.numberOfChannels+' channels')+' · '+(Math.round(b.sampleRate/100)/10)+' kHz')+' · '+(file.size/1048576).toFixed(1)+' MB';
+    const e=ext(file);Array.from(fsel.options).forEach(o=>{o.textContent=o.dataset.t+(o.value===e?' (same as source)':'')});
+    setAvail();
+    $('name').value=base;makePeaks();sync();draw();$('go').disabled=false;setStatus('');
+  }).catch(()=>{$('ed').hidden=true;$('detect').hidden=true;buf=null;setStatus('This browser couldn’t read that file. Try Chrome or Edge, or a file with AAC or MP3 audio.',true)});
+}
+function makePeaks(){
+  const n=1600,len=buf.length,size=len/n,stride=Math.max(1,Math.floor(size/60)),ch=[];
+  for(let c=0;c<buf.numberOfChannels;c++)ch.push(buf.getChannelData(c));
+  peaks=new Float32Array(n);let top=0;
+  for(let i=0;i<n;i++){const a=Math.floor(i*size),b=Math.min(len,Math.floor((i+1)*size));let m=0;
+    for(let j=a;j<b;j+=stride)for(const d of ch){const v=Math.abs(d[j]);if(v>m)m=v}
+    peaks[i]=m;if(m>top)top=m}
+  if(top>0)for(let i=0;i<n;i++)peaks[i]/=top;
+}
+
+/* ---------- waveform ---------- */
+function draw(){
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+  if(!W)return;
+  if(cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+  g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  if(!buf)return;
+  const xs=sel.s/buf.duration*W,xe=sel.e/buf.duration*W,mid=H/2;
+  g.fillStyle='rgba(77,187,164,.18)';g.fillRect(xs,0,xe-xs,H);
+  for(let x=0;x<W;x+=2){
+    const h=Math.max(1.5,peaks[Math.min(peaks.length-1,Math.floor(x/W*peaks.length))]*mid*.92);
+    g.fillStyle=(x>=xs&&x<=xe)?'#77d8bd':'#53675e';g.fillRect(x,mid-h,1.4,h*2);
+  }
+  g.fillStyle='#fff';
+  [xs,xe].forEach((x,i)=>{g.fillRect(x-1,0,2,H);g.fillRect(i?x-12:x,H/2-16,12,32)});
+  if(playhead!==null){g.fillStyle='#ffd166';g.fillRect(playhead/buf.duration*W-1,0,2,H)}
+}
+function sync(){
+  $('ss').value=sel.s.toFixed(1);$('ee').value=sel.e.toFixed(1);$('ss').max=$('ee').max=buf.duration.toFixed(1);
+  $('times').textContent='Clip '+fmt(sel.s)+' to '+fmt(sel.e)+' · length '+fmt(dur());limitFades();
+}
+function limitFades(){
+  ['fi','fo'].forEach(id=>{const el=$(id);el.max=Math.max(0,Math.min(10,dur()/2)).toFixed(1);
+    if(+el.value>+el.max)el.value=el.max;$(id+'O').textContent=(+el.value).toFixed(1)+' s'});
+}
+const posToTime=ev=>{const r=cv.getBoundingClientRect();return Math.min(buf.duration,Math.max(0,(ev.clientX-r.left)/r.width*buf.duration))};
+function move(t){
+  if(drag==='s')sel.s=Math.min(t,sel.e-.2);else sel.e=Math.max(t,sel.s+.2);
+  sel.s=Math.max(0,sel.s);sel.e=Math.min(buf.duration,sel.e);stop();sync();draw();
+}
+cv.addEventListener('pointerdown',ev=>{if(!buf)return;cv.setPointerCapture(ev.pointerId);const t=posToTime(ev);drag=Math.abs(t-sel.s)<=Math.abs(t-sel.e)?'s':'e';move(t)});
+cv.addEventListener('pointermove',ev=>{if(drag)move(posToTime(ev))});
+['pointerup','pointercancel'].forEach(t=>cv.addEventListener(t,()=>{drag=null}));
+$('ss').addEventListener('change',function(){drag='s';move(+this.value||0);drag=null});
+$('ee').addEventListener('change',function(){drag='e';move(+this.value||buf.duration);drag=null});
+window.addEventListener('resize',draw);
+
+/* ---------- envelope + preview ---------- */
+function peakOf(){
+  const a=Math.floor(sel.s*buf.sampleRate),b=Math.floor(sel.e*buf.sampleRate);let m=0;
+  for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);for(let i=a;i<b;i++){const v=Math.abs(d[i]);if(v>m)m=v}}
+  return m;
+}
+function gainValue(){let v=$('vol').value/100;if($('norm').checked){const p=peakOf();if(p>0)v*=.95/p}return v}
+function envelope(p,t0,d,vol){
+  const fi=Math.min(+$('fi').value,d),fo=Math.min(+$('fo').value,Math.max(0,d-fi));
+  p.setValueAtTime(fi>0?0:vol,t0);if(fi>0)p.linearRampToValueAtTime(vol,t0+fi);
+  if(fo>0){p.setValueAtTime(vol,t0+d-fo);p.linearRampToValueAtTime(0,t0+d)}
+}
+$('vol').addEventListener('input',function(){$('volO').textContent=this.value+'%'});
+['fi','fo'].forEach(id=>$(id).addEventListener('input',limitFades));
+function stop(){if(playing){try{playing.onended=null;playing.stop()}catch(e){}playing=null}playhead=null;$('play').textContent='Play selection';if(buf)draw()}
+$('play').addEventListener('click',()=>{
+  if(playing){stop();return}
+  actx.resume();const src=actx.createBufferSource(),gn=actx.createGain(),t0=actx.currentTime+.05,d=dur();
+  src.buffer=buf;src.connect(gn);gn.connect(actx.destination);envelope(gn.gain,t0,d,gainValue());
+  src.start(t0,sel.s,d);playing=src;$('play').textContent='Stop';src.onended=stop;
+  (function tick(){if(playing!==src)return;playhead=sel.s+Math.max(0,actx.currentTime-t0);draw();requestAnimationFrame(tick)})();
+});
+
+/* ---------- FLAC and ALAC encoders (16-bit) ---------- */
+function pcm16(chans){return chans.map(function(f){var o=new Int16Array(f.length);for(var i=0;i<f.length;i++){var v=Math.max(-1,Math.min(1,f[i]));o[i]=v<0?v*32768:v*32767}return o})}
+function BW(cap){this.b=new Uint8Array(cap||65536);this.n=0;this.acc=0;this.na=0}
+BW.prototype.byte=function(x){if(this.n>=this.b.length){var t=new Uint8Array(this.b.length*2);t.set(this.b);this.b=t}this.b[this.n++]=x};
+BW.prototype.put=function(v,nb){while(nb>0){var take=Math.min(nb,8-this.na),sh=nb-take;this.acc=(this.acc<<take)|((v>>>sh)&((1<<take)-1));this.na+=take;nb-=take;if(this.na===8){this.byte(this.acc&255);this.acc=0;this.na=0}}};
+BW.prototype.align=function(){if(this.na)this.put(0,8-this.na)};
+BW.prototype.bytes=function(){return this.b.subarray(0,this.n)};
+var C8=(function(){var t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&128?((c<<1)^7)&255:(c<<1)&255;t[n]=c}return t})();
+var C16=(function(){var t=[];for(var n=0;n<256;n++){var c=n<<8;for(var k=0;k<8;k++)c=c&0x8000?((c<<1)^0x8005)&0xFFFF:(c<<1)&0xFFFF;t[n]=c}return t})();
+function crc8(u){var c=0;for(var i=0;i<u.length;i++)c=C8[c^u[i]];return c}
+function crc16(u){var c=0;for(var i=0;i<u.length;i++)c=((c<<8)&0xFFFF)^C16[(c>>8)^u[i]];return c}
+function riceBits(u,a,b,k){var s=0;for(var i=a;i<b;i++)s+=(u[i]>>k);return s+(b-a)*(k+1)}
+function bestK(u,a,b){var n=b-a,sum=0,i;for(i=a;i<b;i++)sum+=u[i];var k0=n>0&&sum>n?Math.floor(Math.log2(sum/n)):0,best=0,bb=Infinity;
+  for(var k=Math.max(0,k0-1);k<=Math.min(14,k0+1);k++){var c=riceBits(u,a,b,k);if(c<bb){bb=c;best=k}}return [best,bb]}
+function flacSub(w,x,N){
+  var same=true,i;for(i=1;i<N;i++)if(x[i]!==x[0]){same=false;break}
+  if(same){w.put(0,8);w.put(x[0],16);return}
+  var bo=0,bs=Infinity,res=null;
+  for(var o=0;o<=4&&o<N;o++){var r=new Int32Array(N),s=0;
+    for(i=o;i<N;i++){var v=o===0?x[i]:o===1?x[i]-x[i-1]:o===2?x[i]-2*x[i-1]+x[i-2]:o===3?x[i]-3*x[i-1]+3*x[i-2]-x[i-3]:x[i]-4*x[i-1]+6*x[i-2]-4*x[i-3]+x[i-4];r[i]=(v<<1)^(v>>31);s+=r[i]}
+    if(s<bs){bs=s;bo=o;res=r}}
+  var bp=0,bc=Infinity,bk=null;
+  for(var p=0;p<=5;p++){var P=1<<p;if(N%P||(N>>p)<=bo)continue;var sz=N>>p,tot=0,ks=[];
+    for(var j=0;j<P;j++){var a=j?j*sz:bo,b=(j+1)*sz,kk=bestK(res,a,b);ks.push(kk[0]);tot+=kk[1]+4}
+    if(tot<bc){bc=tot;bp=p;bk=ks}}
+  if(bc+bo*16+16>N*16){w.put(2,8);for(i=0;i<N;i++)w.put(x[i],16);return}
+  w.put(16+bo*2,8);for(i=0;i<bo;i++)w.put(x[i],16);
+  w.put(0,2);w.put(bp,4);var P2=1<<bp,sz2=N>>bp;
+  for(var j2=0;j2<P2;j2++){var k=bk[j2],a2=j2?j2*sz2:bo,b2=(j2+1)*sz2;w.put(k,4);
+    for(i=a2;i<b2;i++){var u=res[i],q=u>>k;while(q>0){var c=Math.min(q,32);w.put(0,c);q-=c}w.put((1<<k)|(u&((1<<k)-1)),k+1)}}
+}
+function utf8n(n){if(n<128)return [n];if(n<2048)return [192|n>>6,128|n&63];if(n<65536)return [224|n>>12,128|n>>6&63,128|n&63];return [240|n>>18,128|n>>12&63,128|n>>6&63,128|n&63]}
+function encFlac(chans,rate){
+  var p=pcm16(chans),ch=p.length,total=p[0].length,BS=4096,parts=[],hd=new BW(64);
+  hd.put(0x664C6143,32);hd.put(0x80,8);hd.put(34,24);hd.put(BS,16);hd.put(BS,16);hd.put(0,24);hd.put(0,24);
+  hd.put(rate,20);hd.put(ch-1,3);hd.put(15,5);hd.put(0,4);hd.put(total,32);for(var z=0;z<4;z++)hd.put(0,32);
+  parts.push(hd.bytes().slice());
+  for(var fr=0,pos=0;pos<total;fr++,pos+=BS){
+    var N=Math.min(BS,total-pos),h=new BW(32);
+    h.put(0xFFF8,16);h.put(N===BS?12:7,4);h.put(0,4);h.put(ch-1,4);h.put(4,3);h.put(0,1);
+    utf8n(fr).forEach(function(b){h.put(b,8)});
+    if(N!==BS)h.put(N-1,16);
+    var hb=h.bytes(),w=new BW(N*ch*3+64);
+    for(var i=0;i<hb.length;i++)w.put(hb[i],8);w.put(crc8(hb),8);
+    for(var c=0;c<ch;c++)flacSub(w,p[c].subarray(pos,pos+N),N);
+    w.align();var fb=w.bytes();w.put(crc16(fb),16);
+    parts.push(w.bytes().slice());
+  }
+  return new Blob(parts,{type:'audio/flac'});
+}
+/* ---- ALAC in M4A (frames stored uncompressed, which is valid ALAC) ---- */
+function u32(n){return [n>>>24&255,n>>>16&255,n>>>8&255,n&255]}
+function u16(n){return [n>>8&255,n&255]}
+function str(s){return Array.prototype.map.call(s,function(c){return c.charCodeAt(0)})}
+function cat(a){var n=0;a.forEach(function(x){n+=x.length});var o=new Uint8Array(n),p=0;a.forEach(function(x){o.set(x,p);p+=x.length});return o}
+function box(t,a){var b=cat(a.map(function(x){return x instanceof Uint8Array?x:Uint8Array.from(x)}));return cat([Uint8Array.from(u32(b.length+8).concat(str(t))),b])}
+function encAlac(chans,rate){
+  var p=pcm16(chans),ch=p.length,total=p[0].length,FL=4096,frames=[],sizes=[],i;
+  for(var pos=0;pos<total;pos+=FL){
+    var N=Math.min(FL,total-pos),w=new BW(N*ch*2+16);
+    w.put(ch>1?1:0,3);w.put(0,4);w.put(0,12);w.put(N<FL?1:0,1);w.put(0,2);w.put(1,1);
+    if(N<FL)w.put(N,32);
+    for(i=0;i<N;i++)for(var c=0;c<ch;c++)w.put(p[c][pos+i]&0xFFFF,16);
+    w.put(7,3);w.align();var fb=w.bytes().slice();frames.push(fb);sizes.push(fb.length)}
+  var nF=frames.length,mdatLen=sizes.reduce(function(a,b){return a+b},0),last=total-(nF-1)*FL;
+  var ftyp=box('ftyp',[str('M4A '),u32(0),str('M4A mp42isom'),u32(0)]);
+  function moov(off){
+    var mvhd=box('mvhd',[u32(0),u32(0),u32(0),u32(rate),u32(total),u32(0x10000),u16(0x100),new Array(10).fill(0),u32(0x10000),u32(0),u32(0),u32(0),u32(0x10000),u32(0),u32(0),u32(0),u32(0x40000000),new Array(24).fill(0),u32(2)]);
+    var tkhd=box('tkhd',[u32(3),u32(0),u32(0),u32(1),u32(0),u32(total),new Array(8).fill(0),u16(0),u16(0),u16(0x100),u16(0),u32(0x10000),u32(0),u32(0),u32(0),u32(0x10000),u32(0),u32(0),u32(0),u32(0x40000000),u32(0),u32(0)]);
+    var mdhd=box('mdhd',[u32(0),u32(0),u32(0),u32(rate),u32(total),u16(0x55C4),u16(0)]);
+    var hdlr=box('hdlr',[u32(0),u32(0),str('soun'),new Array(12).fill(0),str('SoundHandler'),[0]]);
+    var smhd=box('smhd',[u32(0),u16(0),u16(0)]);
+    var dinf=box('dinf',[box('dref',[u32(0),u32(1),box('url ',[u32(1)])])]);
+    var cookie=box('alac',[u32(0),u32(FL),[0,16,40,10,14,ch],u16(255),u32(FL*ch*2+8),u32(rate*ch*16),u32(rate)]);
+    var ent=box('alac',[new Array(6).fill(0),u16(1),u16(0),u16(0),u32(0),u16(ch),u16(16),u16(0),u16(0),u32(rate*65536>>>0),cookie]);
+    var stsd=box('stsd',[u32(0),u32(1),ent]);
+    var tt=[u32(0),u32(last===FL?1:2),u32(nF-(last===FL?0:1)),u32(FL)];if(last!==FL){tt.push(u32(1),u32(last))}
+    var stts=box('stts',tt),stsc=box('stsc',[u32(0),u32(1),u32(1),u32(nF),u32(1)]);
+    var sz=[u32(0),u32(0),u32(nF)];sizes.forEach(function(s){sz.push(u32(s))});
+    var stbl=box('stbl',[stsd,stts,stsc,box('stsz',sz),box('stco',[u32(0),u32(1),u32(off)])]);
+    var minf=box('minf',[smhd,dinf,stbl]);
+    return box('moov',[mvhd,box('trak',[tkhd,box('mdia',[mdhd,hdlr,minf])])]);
+  }
+  var m0=moov(0),m=moov(ftyp.length+m0.length+8);
+  return new Blob([ftyp,m,Uint8Array.from(u32(mdatLen+8).concat(str('mdat'))),].concat(frames),{type:'audio/mp4'});
+}
+
+/* ---------- convert ---------- */
+function toInt16(f){const o=new Int16Array(f.length);for(let i=0;i<f.length;i++){const v=Math.max(-1,Math.min(1,f[i]));o[i]=v<0?v*32768:v*32767}return o}
+function encMp3(r,kbps,p){
+  const ch=r.numberOfChannels,enc=new lamejs.Mp3Encoder(ch,r.sampleRate,kbps),L=toInt16(r.getChannelData(0)),R=ch>1?toInt16(r.getChannelData(1)):null,parts=[],B=1152,n=L.length;let k=0;
+  return new Promise(res=>{(function step(){
+    const end=Math.min(n,(k+60)*B);
+    for(;k*B<end;k++){const a=k*B,b=Math.min(n,a+B),o=ch>1?enc.encodeBuffer(L.subarray(a,b),R.subarray(a,b)):enc.encodeBuffer(L.subarray(a,b));if(o.length)parts.push(new Uint8Array(o))}
+    p.value=Math.min(1,k*B/n);
+    if(k*B<n)setTimeout(step,0);else{const t=enc.flush();if(t.length)parts.push(new Uint8Array(t));res(new Blob(parts,{type:'audio/mpeg'}))}
+  })()});
+}
+function encWav(r){
+  const ch=r.numberOfChannels,n=r.length,rate=r.sampleRate,data=n*ch*2,v=new DataView(new ArrayBuffer(44+data));
+  const s=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+  s(0,'RIFF');v.setUint32(4,36+data,true);s(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);
+  v.setUint32(24,rate,true);v.setUint32(28,rate*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);s(36,'data');v.setUint32(40,data,true);
+  const cs=[];for(let c=0;c<ch;c++)cs.push(r.getChannelData(c));let o=44;
+  for(let i=0;i<n;i++)for(const c of cs){const x=Math.max(-1,Math.min(1,c[i]));v.setInt16(o,x<0?x*32768:x*32767,true);o+=2}
+  return new Blob([v],{type:'audio/wav'});
+}
+async function convVideo(f,p,d){
+  if(!vinfo)throw new Error('This video can’t be opened in this browser.');
+  if(!window.MediaRecorder)throw new Error('This browser can’t record video. Try Chrome or Edge.');
+  const mimes=f==='webm'?['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']:['video/mp4;codecs=avc1.640028,mp4a.40.2','video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1,mp4a.40.2','video/mp4'];
+  const mime=mimes.find(m=>MediaRecorder.isTypeSupported(m));
+  if(!mime)throw new Error(f==='webm'?'This browser can’t record WebM video.':'This browser can’t record H.264 video. Use a recent Chrome or Edge, or pick WebM.');
+  const v=document.createElement('video');v.playsInline=true;v.preload='auto';v.src=vinfo.url;
+  await new Promise((res,rej)=>{v.onloadeddata=res;v.onerror=()=>rej(new Error('The video couldn’t be opened.'))});
+  let W=v.videoWidth,H=v.videoHeight;const lim=$('res').value;
+  if(lim!=='orig'&&H>+lim){W=Math.round(W*(+lim)/H);H=+lim}
+  W=W-W%2;H=H-H%2;
+  const cvs=document.createElement('canvas');cvs.width=W;cvs.height=H;const c2=cvs.getContext('2d');
+  const fi=Math.min(+$('fi').value,d),fo=Math.min(+$('fo').value,Math.max(0,d-fi));
+  await actx.resume();
+  const ms=actx.createMediaElementSource(v),gn=actx.createGain(),dest=actx.createMediaStreamDestination();
+  ms.connect(gn);gn.connect(dest);
+  const stream=new MediaStream(cvs.captureStream(30).getVideoTracks().concat(dest.stream.getAudioTracks()));
+  const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:Math.round(+$('vb').value*1e6),audioBitsPerSecond:+$('br').value*1000});
+  const chunks=[];rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  const stopped=new Promise(r=>{rec.onstop=r});
+  v.currentTime=sel.s;await new Promise(r=>{v.onseeked=r});
+  c2.drawImage(v,0,0,W,H);
+  rec.start(500);envelope(gn.gain,actx.currentTime,d,gainValue());
+  try{await v.play()}catch(e){rec.stop();throw new Error('The browser blocked playback. Click Convert again.')}
+  await new Promise(res=>{(function tick(){
+    const el=v.currentTime-sel.s;c2.drawImage(v,0,0,W,H);
+    let a=1;if(fi>0&&el<fi)a=el/fi;if(fo>0&&el>d-fo)a=Math.min(a,(d-el)/fo);
+    if(a<1){c2.fillStyle='rgba(0,0,0,'+(1-Math.max(0,a))+')';c2.fillRect(0,0,W,H)}
+    p.value=Math.min(1,Math.max(0,el/d));setStatus('Converting video… '+Math.round(p.value*100)+'%. Keep this tab open and visible.');
+    if(el>=d||v.ended){res();return}
+    requestAnimationFrame(tick)})()});
+  v.pause();rec.stop();await stopped;
+  stream.getTracks().forEach(t=>t.stop());ms.disconnect();
+  if(!chunks.length)throw new Error('Nothing was recorded. Try again or pick another format.');
+  return new Blob(chunks,{type:mime.split(';')[0]});
+}
+$('go').addEventListener('click',async()=>{
+  stop();const btn=$('go'),p=$('prog'),f=MODES[mode].f;
+  btn.disabled=true;out=null;$('resCard').hidden=true;p.hidden=false;p.value=0;setStatus('Converting…');
+  try{
+    const d=dur(),ch=$('mono').checked?1:Math.min(2,buf.numberOfChannels),rate=Math.min($('sr').value==='orig'?buf.sampleRate:+$('sr').value,f==='mp3'?48000:192000);
+    if(MODES[mode].video){out=await convVideo(f,p,d)}else{
+    const off=new(window.OfflineAudioContext||window.webkitOfflineAudioContext)(ch,Math.ceil(d*rate),rate);
+    const src=off.createBufferSource(),gn=off.createGain();
+    src.buffer=buf;src.connect(gn);gn.connect(off.destination);envelope(gn.gain,0,d,gainValue());src.start(0,sel.s,d);
+    const r=await off.startRendering();
+    const cs=[];for(let c=0;c<r.numberOfChannels;c++)cs.push(r.getChannelData(c));
+    setStatus('Encoding…');await new Promise(z=>setTimeout(z,20));
+    out=f==='mp3'?await encMp3(r,+$('br').value,p):f==='flac'?encFlac(cs,r.sampleRate):f==='alac'?encAlac(cs,r.sampleRate):encWav(r);}
+    outName=($('name').value.trim()||'audio').replace(/[\\/:*?"<>|]+/g,'_')+'.'+(f==='alac'?'m4a':f);
+    $('rn').textContent=outName;$('rz').textContent=(out.size/1048576).toFixed(2)+' MB · '+fmt(d);
+    $('note').textContent='';$('resCard').hidden=false;setStatus('Done – 1 file ready.');
+  }catch(e){setStatus(MODES[mode].video&&e&&e.message?e.message:'Conversion failed. Try a shorter clip or WAV.',true)}
+  btn.disabled=false;p.hidden=true;
+});
+
+/* ---------- save (ZIP inside Claude, direct elsewhere) ---------- */
+const crcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=crcT[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function zip(name,u){
+  const nb=new TextEncoder().encode(name),crc=crc32(u),sz=u.length,h=new DataView(new ArrayBuffer(30)),cd=new DataView(new ArrayBuffer(46)),e=new DataView(new ArrayBuffer(22));
+  h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x800,true);h.setUint16(12,0x21,true);h.setUint32(14,crc,true);h.setUint32(18,sz,true);h.setUint32(22,sz,true);h.setUint16(26,nb.length,true);
+  cd.setUint32(0,0x02014b50,true);cd.setUint16(4,20,true);cd.setUint16(6,20,true);cd.setUint16(8,0x800,true);cd.setUint16(14,0x21,true);cd.setUint32(16,crc,true);cd.setUint32(20,sz,true);cd.setUint32(24,sz,true);cd.setUint16(28,nb.length,true);
+  e.setUint32(0,0x06054b50,true);e.setUint16(8,1,true);e.setUint16(10,1,true);e.setUint32(12,46+nb.length,true);e.setUint32(16,30+nb.length+sz,true);
+  return new Blob([h,nb,u,cd,nb,e],{type:'application/zip'});
+}
+const dlsP=window.claude&&claude.use?Promise.resolve(claude.use('downloads')).catch(()=>null):Promise.resolve(null);
+$('save').addEventListener('click',async()=>{
+  if(!out)return;const d=await dlsP;
+  if(d){
+    try{
+      if(/\.(webm|mp4)$/.test(outName)){await d.save({filename:outName,data:out});$('note').textContent='';return}
+      const u=new Uint8Array(await out.arrayBuffer());
+      await d.save({filename:outName.replace(/\.[^.]+$/,'')+'.zip',data:zip(outName,u)});
+      $('note').textContent='Saved as a ZIP. Unzip it to get '+outName+'.';
+    }catch(e){if(!e||e.code!=='declined')setStatus('Saving isn’t available here. Open this page as a file in your browser to save directly.',true)}
+    return;
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(out);a.download=outName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+});
+
+/* ---------- input ---------- */
+const drop=$('drop'),input=$('file');
+drop.addEventListener('click',()=>input.click());
+drop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click()}});
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');load(e.dataTransfer.files[0])});
+input.addEventListener('change',e=>load(e.target.files[0]));
+pick(hasMp3?'mp3':'wav');setAvail();
+})();
+</script>
+</body>
+</html>
